@@ -3,7 +3,7 @@ package com.cheng.httpproxy;
 import android.app.Application;
 
 import com.cheng.httpproxy.proxy.HttpProxy;
-import com.cheng.httpproxy.proxy.VollyModel;
+import com.cheng.httpproxy.proxy.OkHttpModel;
 
 /**
  * @author : chengyue
@@ -16,6 +16,7 @@ public class MyApp extends Application {
     @Override
     public void onCreate() {
         super.onCreate();
-        HttpProxy.getInstance().init(VollyModel.getInstance(this));
+//        HttpProxy.getInstance().init(VollyModel.getInstance(this));
+        HttpProxy.getInstance().init(OkHttpModel.getInstance());
     }
 }

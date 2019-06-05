@@ -3,6 +3,8 @@ package com.cheng.httpproxy.proxy;
 import android.content.Context;
 import android.util.Log;
 
+import com.android.volley.DefaultRetryPolicy;
+import com.android.volley.Request;
 import com.android.volley.RequestQueue;
 import com.android.volley.Response;
 import com.android.volley.VolleyError;
@@ -60,11 +62,49 @@ public class VollyModel implements IHttp {
     }
 
     @Override
-    public void post(String url, Map<String, String> params, ICallBack callBack) {
+    public void post(String url, final Map<String, String> params, final ICallBack callBack) {
+        StringRequest request = new StringRequest(Request.Method.POST, url, new Response.Listener<String>() {
+            @Override
+            public void onResponse(String response) {
+                callBack.onSuccess(response);
+            }
 
+        }, new Response.ErrorListener() {
+            @Override
+            public void onErrorResponse(VolleyError error) {
+                Log.i(TAG, "onErrorResponse : " + error.getMessage());
+                callBack.onFailure(error.toString());
+            }
+        }) {
+            @Override
+            protected Map<String, String> getParams() {
+                return params;
+            }
+        };
+//        JsonObjectRequest request = new JsonObjectRequest(Request.Method.POST, url,
+//                new JSONObject(params),
+//                new Response.Listener<JSONObject>() {
+//                    @Override
+//                    public void onResponse(JSONObject response) {
+//                        callBack.onSuccess(response.toString());
+//                    }
+//                }, new Response.ErrorListener() {
+//
+//            @Override
+//            public void onErrorResponse(VolleyError error) {
+//                Log.i("aaa", "onErrorResponse : " + error.getMessage());
+//                callBack.onFailure(error.toString());
+//            }
+//        });
+        /*
+         * 超时重新请求问题，不加则会出现频繁失败的情况
+         */
+        DefaultRetryPolicy retryPolicy = new DefaultRetryPolicy(15000, 0, 1.0f);
+        request.setRetryPolicy(retryPolicy);
+        requestQueue.add(request);
     }
 
-    public static class HttpUtils {
+    private static class HttpUtils {
         static String appendParams(String url, Map<String, String> params) {
             if (params == null) {
                 return url;
@@ -74,7 +114,6 @@ public class VollyModel implements IHttp {
             for (Map.Entry<String, String> set : params.entrySet()) {
                 sb.append(set.getKey()).append(":").append(set.getValue());
             }
-
             return sb.toString();
         }
     }
