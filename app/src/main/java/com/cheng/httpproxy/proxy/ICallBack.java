@@ -2,9 +2,6 @@ package com.cheng.httpproxy.proxy;
 
 import java.util.Map;
 
-import okhttp3.MediaType;
-import okhttp3.RequestBody;
-
 /**
  * 请求回调
  *
@@ -21,7 +18,7 @@ public interface ICallBack {
 
     Map<String, String> getHeaders();
 
-    MediaType getMediaType();
+    String getMediaType();
 
-    RequestBody getBody(Map<String, String> params);
+    <T> T getBody(Map<String, String> params);
 }

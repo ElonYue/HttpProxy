@@ -10,9 +10,6 @@ import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Map;
 
-import okhttp3.FormBody;
-import okhttp3.MediaType;
-import okhttp3.RequestBody;
 
 /**
  * @author : chengyue
@@ -70,10 +67,7 @@ public abstract class HttpCallBack<T> implements ICallBack {
         return null;
     }
 
-    @Override
-    public MediaType getMediaType() {
-        return MediaType.parse("application/json;charset=utf-8");
-    }
+
 
     public Type[] getTypes() {
         return null;
@@ -90,14 +84,13 @@ public abstract class HttpCallBack<T> implements ICallBack {
     }
 
     @Override
-    public RequestBody getBody(Map<String, String> params) {
-        FormBody.Builder builder = new FormBody.Builder();
-        if (params != null) {
-            for (String key : params.keySet()) {
-                builder.add(key, params.get(key));
-            }
-        }
-        return builder.build();
+    public String getMediaType() {
+        return "application/json;charset=utf-8";
+    }
+
+    @Override
+    public <T> T getBody(Map<String, String> params) {
+        return null;
     }
 }
 
