@@ -1,17 +1,21 @@
 package com.cheng.httpproxy.proxy;
 
-import android.support.annotation.NonNull;
 import android.util.Log;
 
+import com.cheng.httpproxy.LogUtil;
+
 import java.io.IOException;
+import java.net.ConnectException;
+import java.net.SocketTimeoutException;
 import java.util.Map;
+import java.util.concurrent.TimeUnit;
 
 import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
+import okhttp3.Headers;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
-import okhttp3.RequestBody;
 import okhttp3.Response;
 
 /**
@@ -39,8 +43,16 @@ public class OkHttpModel implements IHttp {
 
     @Override
     public void get(String url, Map<String, String> params, final ICallBack callBack) {
+        Log.d(TAG, url);
         String finUrl = url;
-        OkHttpClient okHttpClient = new OkHttpClient();
+        OkHttpClient.Builder builder =  new OkHttpClient.Builder();
+//        builder.addInterceptor(new LoggingInterceptor());
+        builder.connectTimeout(60, TimeUnit.SECONDS);
+        builder.readTimeout(60, TimeUnit.SECONDS);
+        builder.sslSocketFactory(SSLSocketClient.getSSLSocketFactory());
+        builder.hostnameVerifier(SSLSocketClient.getHostnameVerifier());
+
+        OkHttpClient okHttpClient = builder.build();
         Request request = new Request.Builder()
                 .url(finUrl)
                 .get()//默认就是GET请求，可以不写
@@ -48,58 +60,113 @@ public class OkHttpModel implements IHttp {
 
         okHttpClient.newCall(request).enqueue(new Callback() {
             @Override
-            public void onFailure(Call call, IOException e) {
-                callBack.onFailure(call.toString());
-            }
-
-            @Override
-            public void onResponse(Call call, final Response response) throws IOException {
+            public void onFailure(Call call, final IOException e) {
+                Log.d(TAG, call.toString() + "\n\r" + e.getMessage());
                 Platform.get().execute(new Runnable() {
                     @Override
                     public void run() {
-                        try {
-                            callBack.onSuccess(response.body().string());
-                        } catch (IOException e) {
-                            e.printStackTrace();
+                        if (e instanceof SocketTimeoutException) {
+                            callBack.onFailure("SocketTimeoutException:" + e.getMessage());
+                        } else if (e instanceof ConnectException) {
+                            callBack.onFailure("ConnectException:" + e.getMessage());
+                        } else {
+                            callBack.onFailure(e.getMessage());
                         }
                     }
                 });
+            }
+
+            @Override
+            public void onResponse(Call call, final Response response) {
+                try {
+                    final String result = (response != null && response.body() != null) ?
+                            response.body().string() : "";
+                    Platform.get().execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            callBack.onSuccess(result);
+                        }
+                    });
+                } catch (final IOException e) {
+                    Platform.get().execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            callBack.onFailure(e.getMessage());
+                        }
+                    });
+                }
             }
         });
 
     }
 
+
     @Override
     public void post(String url, Map<String, String> params, final ICallBack callBack) {
-        FormBody.Builder builder = new FormBody.Builder();
-        addParams(builder, params);
-        RequestBody requestBody = builder.build();
-        Request request = new Request.Builder()
-                .url(url)
-                .post(requestBody)
-                .build();
-        OkHttpClient okHttpClient = new OkHttpClient();
-        okHttpClient.newCall(request).enqueue(new Callback() {
-            @Override
-            public void onFailure(@NonNull Call call, @NonNull IOException e) {
-                Log.d(TAG, "onFailure: " + e.getMessage());
-                callBack.onFailure(e.getMessage());
-            }
+        Log.d(TAG, "[url:] = " + url);
+        try {
+//            FormBody.Builder formBodybuilder = new FormBody.Builder();
+//            addParams(formBodybuilder, params);
+//            JSONObject requestJson = JSONObject.parseObject(JSON.toJSONString(params));
+//            MediaType mediaType = callBack.getMediaType();
+//            RequestBody requestBody = FormBody.create(mediaType, requestJson.toJSONString());
 
-            @Override
-            public void onResponse(@NonNull Call call, @NonNull final Response response) throws IOException {
-                Platform.get().execute(new Runnable() {
-                    @Override
-                    public void run() {
-                        try {
-                            callBack.onSuccess(response.body().string());
-                        } catch (IOException e) {
-                            e.printStackTrace();
+            Request request = new Request.Builder()
+                    .url(url)
+                    .post(callBack.getBody(params))
+                    .headers(getHeaders(callBack))
+                    .build();
+
+            OkHttpClient.Builder builder =  new OkHttpClient.Builder();
+//            builder.addInterceptor(new LoggingInterceptor());
+            builder.sslSocketFactory(SSLSocketClient.getSSLSocketFactory());
+            builder.hostnameVerifier(SSLSocketClient.getHostnameVerifier());
+
+            OkHttpClient okHttpClient = builder.build();
+
+            okHttpClient.newCall(request).enqueue(new Callback() {
+                @Override
+                public void onFailure(Call call, final IOException e) {
+                    Log.d(TAG, call.toString() + "\n\r" + e.getMessage());
+                    Platform.get().execute(new Runnable() {
+                        @Override
+                        public void run() {
+                            if (e instanceof SocketTimeoutException) {
+                                callBack.onFailure("SocketTimeoutException:" + e.getMessage());
+                            } else if (e instanceof ConnectException) {
+                                callBack.onFailure("ConnectException:" + e.getMessage());
+                            } else {
+                                callBack.onFailure(e.getMessage());
+                            }
                         }
+                    });
+                }
+
+                @Override
+                public void onResponse(Call call, final Response response) {
+                    try {
+                        final String result = (response != null && response.body() != null) ?
+                                response.body().string() : "";
+                        Platform.get().execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                callBack.onSuccess(result);
+                            }
+                        });
+                    } catch (final IOException e) {
+                        Platform.get().execute(new Runnable() {
+                            @Override
+                            public void run() {
+                                callBack.onFailure(e.getMessage());
+                            }
+                        });
                     }
-                });
-            }
-        });
+                }
+            });
+        } catch (Exception e) {
+            LogUtil.d(e.getMessage());
+            callBack.onFailure(e.getMessage());
+        }
     }
 
     private void addParams(FormBody.Builder builder, Map<String, String> params) {
@@ -108,5 +175,16 @@ public class OkHttpModel implements IHttp {
                 builder.add(key, params.get(key));
             }
         }
+    }
+
+    private Headers getHeaders(ICallBack callBack) {
+        Map<String, String> headers = callBack.getHeaders();
+        Headers.Builder headersBuilder = new Headers.Builder();
+        if (headers != null && headers.size() > 0) {
+            for (Map.Entry<String, String> entry : headers.entrySet()) {
+                headersBuilder.add(entry.getKey(), entry.getValue());
+            }
+        }
+        return headersBuilder.build();
     }
 }

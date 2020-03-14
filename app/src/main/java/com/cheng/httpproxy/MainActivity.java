@@ -6,9 +6,9 @@ import android.util.Log;
 import android.view.View;
 import android.widget.TextView;
 
+import com.alibaba.fastjson.JSONObject;
 import com.cheng.httpproxy.proxy.HttpCallBack;
 import com.cheng.httpproxy.proxy.HttpProxy;
-import com.google.gson.JsonObject;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -24,9 +24,9 @@ public class MainActivity extends AppCompatActivity {
             @Override
             public void onClick(View v) {
                 String url = "http://t.weather.sojson.com/api/weather/city/101030100";
-                HttpProxy.getInstance().get(url, null, new HttpCallBack<JsonObject>() {
+                HttpProxy.getInstance().get(url, null, new HttpCallBack<JSONObject>() {
                     @Override
-                    public void onSucc(JsonObject response) {
+                    public void onSucc(JSONObject response) {
                         Log.d("Main", response.toString());
                         tv_result.setText(response.toString());
                     }
@@ -34,6 +34,7 @@ public class MainActivity extends AppCompatActivity {
                     @Override
                     public void onFailure(String error) {
                         super.onFailure(error);
+                        Log.d("Main", "error : " + error);
                     }
                 });
             }
@@ -48,23 +49,21 @@ public class MainActivity extends AppCompatActivity {
                 params.put("Pwd", "111111");
                 params.put("ClientID", "111111");
 
-                HttpProxy.getInstance().post(url, params, new HttpCallBack<JsonObject>() {
+                HttpProxy.getInstance().post(url, params, new HttpCallBack<JSONObject>() {
                     @Override
-                    public void onSucc(JsonObject response) {
+                    public void onSucc(JSONObject response) {
                         Log.d("Main", response.toString());
                         tv_result.setText(response.toString());
                     }
 
                     @Override
                     public void onFailure(String error) {
+                        Log.d("Main", error);
                         super.onFailure(error);
                     }
 
                 });
-
-
             }
         });
-
     }
 }

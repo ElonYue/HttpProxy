@@ -32,7 +32,7 @@ public class HttpProxy implements IHttp {
         return mInstance;
     }
 
-   private HttpProxy() {
+    private HttpProxy() {
         mInstance = this;
     }
 

@@ -1,5 +1,10 @@
 package com.cheng.httpproxy.proxy;
 
+import java.util.Map;
+
+import okhttp3.MediaType;
+import okhttp3.RequestBody;
+
 /**
  * 请求回调
  *
@@ -13,4 +18,10 @@ public interface ICallBack {
     void onSuccess(String response);
 
     void onFailure(String error);
+
+    Map<String, String> getHeaders();
+
+    MediaType getMediaType();
+
+    RequestBody getBody(Map<String, String> params);
 }
