@@ -7,8 +7,8 @@ import android.view.View;
 import android.widget.TextView;
 
 import com.alibaba.fastjson.JSONObject;
-import com.cheng.httpproxy.proxy.HttpCallBack;
-import com.cheng.httpproxy.proxy.HttpProxy;
+import com.cy.httpproxy.proxy.HttpCallBack;
+import com.cy.httpproxy.proxy.HttpProxy;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -67,7 +67,7 @@ public class MainActivity extends AppCompatActivity {
 //                    }
 //
 //                });
-                String signUrl = "http://192.162.130.188:80/secure-gateway-api/v1/psam/card/sign/apply";
+                String signUrl = "http://192.162.130.111/secure-gateway-api/v1/psam/card/sign/apply";
                 HttpProxy.getInstance().post(signUrl, params,
                         new HttpCallBack<JSONObject>() {
                             @Override
@@ -88,15 +88,14 @@ public class MainActivity extends AppCompatActivity {
                             }
 
                             @Override
-                            public <T> T getBody(Map<String, String> params) {
+                            public Object getBody(Map<String, String> params) {
                                 JSONObject requestJson =
                                         JSONObject.parseObject("{\"areaNo\":\"3401\"," +
                                                 "\"encoding\":\"UTF-8\",\"format\":\"JSON\",\"mac\":\"00000000\",\"operatorId\":\"3401000000000001\",\"random\":\"5FE1C3558AB84A87\",\"reqParamsSet\":\"{\\\"laneNo\\\":\\\"3401\\\",\\\"laneType\\\":\\\"03\\\",\\\"proListNo\\\":\\\"34010920200228122618IZUADJECMYFXUIUE\\\",\\\"provinceCode\\\":\\\"3401\\\",\\\"psamNo\\\":\\\"34010201000000000001\\\",\\\"roadCode\\\":\\\"3401\\\",\\\"roadName\\\":\\\"某某高速\\\",\\\"stationCode\\\":\\\"102\\\",\\\"stationName\\\":\\\"包河大道\\\",\\\"stationType\\\":\\\"01\\\",\\\"terminalNo\\\":\\\"215100000001\\\",\\\"terminalTime\\\":\\\"2020-02-28 12:26:18\\\"}\",\"tokenCode\":\"000000000000000000000000000000000000\"}");
-
-                                MediaType mediaType = MediaType.parse(getMediaType());
+                                MediaType mediaType = getMediaType();
                                 RequestBody requestBody = FormBody.create(mediaType,
                                         requestJson.toJSONString());
-                                return (T) requestBody;
+                                return requestBody;
                             }
                         });
 
