@@ -1,12 +1,14 @@
-package com.cheng.httpproxy.proxy;
+package com.cy.httpproxy.proxy;
 
 import android.util.Log;
 
-import com.cheng.httpproxy.LogUtil;
+import com.cy.httpproxy.SSLSocketClient;
 
 import java.io.IOException;
 import java.net.ConnectException;
 import java.net.SocketTimeoutException;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.Map;
 import java.util.concurrent.TimeUnit;
 
@@ -14,6 +16,7 @@ import okhttp3.Call;
 import okhttp3.Callback;
 import okhttp3.FormBody;
 import okhttp3.Headers;
+import okhttp3.Interceptor;
 import okhttp3.OkHttpClient;
 import okhttp3.Request;
 import okhttp3.RequestBody;
@@ -30,8 +33,9 @@ public class OkHttpModel implements IHttp {
 
     private static OkHttpModel mInstance;
 
-    public static OkHttpModel getInstance() {
+    private List<Interceptor> interceptors = new ArrayList<>();
 
+    public static OkHttpModel getInstance() {
         if (mInstance == null) {
             synchronized (OkHttpModel.class) {
                 if (mInstance == null) {
@@ -44,25 +48,20 @@ public class OkHttpModel implements IHttp {
 
     @Override
     public void get(String url, Map<String, String> params, final ICallBack callBack) {
-        Log.d(TAG, url);
+//        Log.d(TAG, url);
         String finUrl = url;
-        OkHttpClient.Builder builder =  new OkHttpClient.Builder();
-//        builder.addInterceptor(new LoggingInterceptor());
-        builder.connectTimeout(60, TimeUnit.SECONDS);
-        builder.readTimeout(60, TimeUnit.SECONDS);
-        builder.sslSocketFactory(SSLSocketClient.getSSLSocketFactory());
-        builder.hostnameVerifier(SSLSocketClient.getHostnameVerifier());
 
-        OkHttpClient okHttpClient = builder.build();
+        OkHttpClient okHttpClient = getOkHttpClient();
         Request request = new Request.Builder()
                 .url(finUrl)
                 .get()//默认就是GET请求，可以不写
+                .headers(getHeaders(callBack))
                 .build();
 
         okHttpClient.newCall(request).enqueue(new Callback() {
             @Override
             public void onFailure(Call call, final IOException e) {
-                Log.d(TAG, call.toString() + "\n\r" + e.getMessage());
+//                Log.d(TAG, call.toString() + "\n\r" + e.getMessage());
                 Platform.get().execute(new Runnable() {
                     @Override
                     public void run() {
@@ -104,36 +103,25 @@ public class OkHttpModel implements IHttp {
 
     @Override
     public void post(String url, Map<String, String> params, final ICallBack callBack) {
-        Log.d(TAG, "[url:] = " + url);
+//        Log.d(TAG, "[url:] = " + url);
         try {
 //            FormBody.Builder formBodybuilder = new FormBody.Builder();
 //            addParams(formBodybuilder, params);
 //            JSONObject requestJson = JSONObject.parseObject(JSON.toJSONString(params));
-//            MediaType mediaType = MediaType.parse(callBack.getMediaType());
+//            MediaType mediaType = callBack.getMediaType();
 //            RequestBody requestBody = FormBody.create(mediaType, requestJson.toJSONString());
-            RequestBody requestBody = callBack.getBody(params);
-            if (requestBody == null) {
-                FormBody.Builder builder = new FormBody.Builder();
-                addParams(builder, params);
-                requestBody = builder.build();
-            }
+
             Request request = new Request.Builder()
                     .url(url)
-                    .post(requestBody)
+                    .post((RequestBody) getBody(callBack, params))
                     .headers(getHeaders(callBack))
                     .build();
 
-            OkHttpClient.Builder builder =  new OkHttpClient.Builder();
-//            builder.addInterceptor(new LoggingInterceptor());
-            builder.sslSocketFactory(SSLSocketClient.getSSLSocketFactory());
-            builder.hostnameVerifier(SSLSocketClient.getHostnameVerifier());
-
-            OkHttpClient okHttpClient = builder.build();
-
+            OkHttpClient okHttpClient = getOkHttpClient();
             okHttpClient.newCall(request).enqueue(new Callback() {
                 @Override
-                public void onFailure(Call call, final IOException e) {
-                    Log.d(TAG, call.toString() + "\n\r" + e.getMessage());
+                public void onFailure(Call call, IOException e) {
+//                    Log.d(TAG, call.toString() + "\n\r" + e.getMessage());
                     Platform.get().execute(new Runnable() {
                         @Override
                         public void run() {
@@ -170,17 +158,37 @@ public class OkHttpModel implements IHttp {
                 }
             });
         } catch (Exception e) {
-            LogUtil.d(e.getMessage());
+            Log.e(TAG, Log.getStackTraceString(e));
             callBack.onFailure(e.getMessage());
         }
     }
 
-    private void addParams(FormBody.Builder builder, Map<String, String> params) {
+    private OkHttpClient getOkHttpClient() {
+        OkHttpClient.Builder builder =  new OkHttpClient.Builder();
+        if (interceptors != null) {
+            for (Interceptor interceptor : interceptors) {
+                builder.addInterceptor(interceptor);
+            }
+        }
+        builder.connectTimeout(30, TimeUnit.SECONDS);
+        builder.readTimeout(30, TimeUnit.SECONDS);
+        builder.sslSocketFactory(SSLSocketClient.getSSLSocketFactory());
+        builder.hostnameVerifier(SSLSocketClient.getHostnameVerifier());
+        return builder.build();
+    }
+
+    private Object getBody(ICallBack callBack, Map<String, String> params) {
+        Object body = callBack.getBody(params);
+        if (body != null) {
+            return body;
+        }
+        FormBody.Builder builder = new FormBody.Builder();
         if (params != null) {
             for (String key : params.keySet()) {
                 builder.add(key, params.get(key));
             }
         }
+        return builder.build();
     }
 
     private Headers getHeaders(ICallBack callBack) {
@@ -192,5 +200,9 @@ public class OkHttpModel implements IHttp {
             }
         }
         return headersBuilder.build();
+    }
+
+    public void addInterceptor(Interceptor interceptor) {
+        this.interceptors.add(interceptor);
     }
 }

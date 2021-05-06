@@ -1,46 +1,44 @@
-package com.cheng.httpproxy.proxy;
+package com.cy.httpproxy.proxy;
 
 import android.util.Log;
 
-import com.alibaba.fastjson.JSONObject;
+import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.util.ParameterizedTypeImpl;
-import com.cheng.httpproxy.LogUtil;
 
 import java.lang.reflect.ParameterizedType;
 import java.lang.reflect.Type;
 import java.util.Map;
 
+import okhttp3.MediaType;
 
 /**
  * @author : chengyue
  * @version : v1.0
  * @date : 2019/3/29
  * @history : change on v1.0
- *
  */
 public abstract class HttpCallBack<T> implements ICallBack {
+    private final String TAG = "HttpCallBack";
 
     @Override
     public void onSuccess(String response) {
-        Log.d("HttpCallBack", "===onSuccess String response==");
-        Log.d("HttpCallBack", response);
-
-       try {
-           Type[] types = getTypes();
-           T t;
-           if (types == null) {
-               Class<?> cla = getClassType(this);
-               t = (T) JSONObject.parseObject(response, cla);
-           } else {
-               t = (T) JSONObject.parseObject(response, buildType(getTypes()));
-           }
-           onSucc(t);
-       } catch (Exception e) {
-           Log.e("HttpCallBack",e.getMessage());
-           onFailure(e.getMessage());
-       }
-
-//        https://www.cnblogs.com/liqipeng/p/9148545.html
+//        Log.d("HttpCallBack", "===onSuccess String response==");
+//        Log.w("HttpCallBack", response);
+        try {
+            Type[] types = getTypes();
+            T t;
+            if (types == null) {
+                Class<?> cla = getClassType(this);
+                t = (T) JSON.parseObject(response, cla);
+            } else {
+                t = (T) JSON.parseObject(response, buildType(getTypes()));
+            }
+            onSucc(t);
+        } catch (Exception e) {
+            Log.e(TAG, "请求结果[Exception]：" + Log.getStackTraceString(e));
+//           e.printStackTrace();
+            onFailure(e.getMessage());
+        }
     }
 
 
@@ -63,11 +61,13 @@ public abstract class HttpCallBack<T> implements ICallBack {
 
     @Override
     public Map<String, String> getHeaders() {
-        LogUtil.d("getHeaders");
         return null;
     }
 
-
+    @Override
+    public MediaType getMediaType() {
+        return MediaType.parse("application/json;charset=utf-8");
+    }
 
     public Type[] getTypes() {
         return null;
@@ -77,19 +77,15 @@ public abstract class HttpCallBack<T> implements ICallBack {
         ParameterizedTypeImpl beforeType = null;
         if (types != null && types.length > 0) {
             for (int i = types.length - 1; i > 0; i--) {
-                beforeType = new ParameterizedTypeImpl(new Type[]{beforeType == null ? types[i] : beforeType}, null, types[i - 1]);
+                beforeType = new ParameterizedTypeImpl(new Type[]{beforeType == null ? types[i] :
+                        beforeType}, null, types[i - 1]);
             }
         }
         return beforeType;
     }
 
     @Override
-    public String getMediaType() {
-        return "application/json;charset=utf-8";
-    }
-
-    @Override
-    public <T> T getBody(Map<String, String> params) {
+    public Object getBody(Map<String, String> params) {
         return null;
     }
 }

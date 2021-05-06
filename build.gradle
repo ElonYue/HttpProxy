@@ -25,3 +25,20 @@ allprojects {
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+
+ext {
+    //android开发版本配置
+    android = [
+            compileSdkVersion: 28,
+            minSdkVersion    : 19,
+            targetSdkVersion : 28,
+            supportVersion   : '28.0.0',
+    ]
+
+    libs = [
+            fastjsonVersion: '1.2.55'
+    ]
+
+
+}

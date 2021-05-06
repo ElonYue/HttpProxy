@@ -1,4 +1,4 @@
-package com.cheng.httpproxy;
+package com.cy.httpproxy.proxy;
 
 /**
  * @author : chengyue
@@ -6,15 +6,10 @@ package com.cheng.httpproxy;
  * @date : 2019/3/30
  * @history : change on v1.0
  */
-public class BaseType<T> {
-
-    String code;
-    String message;
-    T result;
-
-    public BaseType() {
-//        BaseType baseType = new Gson().fromJson(respone, BaseType.class);
-    }
+public class BaseResponse<T> {
+    private String code;
+    private String message;
+    private T result;
 
     public T getResult() {
         return result;

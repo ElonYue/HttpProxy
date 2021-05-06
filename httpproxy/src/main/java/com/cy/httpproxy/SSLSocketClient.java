@@ -1,4 +1,4 @@
-package com.cheng.httpproxy.proxy;
+package com.cy.httpproxy;
 
 import java.security.SecureRandom;
 import java.security.cert.X509Certificate;
